@@ -7,12 +7,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.sql.Connection;
@@ -46,7 +42,7 @@ public final class MySQLSync extends JavaPlugin implements Listener {
 
         connection = MySQL.getConnection();
 
-        if (getConfig().getBoolean("recreatetables")) {
+        if (getConfig().getBoolean("recreate_tables")) {
             recreateTables();
         }
 
@@ -63,7 +59,9 @@ public final class MySQLSync extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         // Save all player data before shutting down. This is important to prevent data loss
-        Bukkit.getOnlinePlayers().forEach(PlayerUtil::saveData);
+        if (getConfig().getBoolean("sync_to_db")) {
+            Bukkit.getOnlinePlayers().forEach(PlayerUtil::saveData);
+        }
         MySQL.closeConnection();
     }
 
@@ -76,11 +74,11 @@ public final class MySQLSync extends JavaPlugin implements Listener {
         // Set the MySQL connection details
         // Don't forget to add these values to your config.yml
         MySQL.setConfig(
-                getConfig().getString("host"),
-                getConfig().getInt("port"),
-                getConfig().getString("database"),
-                getConfig().getString("username"),
-                getConfig().getString("password")
+                getConfig().getString("mysql.host"),
+                getConfig().getInt("mysql.port"),
+                getConfig().getString("mysql.database"),
+                getConfig().getString("mysql.username"),
+                getConfig().getString("mysql.password")
         );
     }
 
@@ -100,18 +98,14 @@ public final class MySQLSync extends JavaPlugin implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         // Make sure the player's inventory is empty when they join
         Player player = event.getPlayer();
-        player.getInventory().clear();
-        player.getEnderChest().clear();
-        player.getInventory().setArmorContents(null);
-        player.sendTitle("§c§lMySQLSync", "§7Loading your data...", 10, 70, 20);
         freezePlayer(player);
-        long startTime = System.currentTimeMillis();
-        PlayerUtil.loadData(player);
-        long endTime = System.currentTimeMillis();
-        LOGGER.info(String.format("Loaded data for %s in %dms", player.getName(), (endTime - startTime)));
-
+        if (getConfig().getBoolean("sync_from_db")) {
+            long startTime = System.currentTimeMillis();
+            PlayerUtil.loadData(player);
+            long endTime = System.currentTimeMillis();
+            LOGGER.info(String.format("Loaded data for %s in %dms", player.getName(), (endTime - startTime)));
+        }
         unfreezePlayer(player);
-        player.sendTitle("§a§lMySQLSync", "§7Data loaded!", 10, 70, 20);
     }
 
     @EventHandler
@@ -120,40 +114,12 @@ public final class MySQLSync extends JavaPlugin implements Listener {
         if (isFrozen(player)) {
             frozen.remove(player);
         } else {
-            long startTime = System.currentTimeMillis();
-            PlayerUtil.saveData(player);
-            long endTime = System.currentTimeMillis();
-            LOGGER.info(String.format("Saved data for %s in %dms", player.getName(), (endTime - startTime)));
-        }
-    }
-
-
-    // "Useless" events, if you want them to move while data is loading, you can remove the freezePlayer and unfreezePlayer methods
-    @EventHandler
-    public void onPlayerMove(PlayerMoveEvent event) {
-        if (isFrozen(event.getPlayer())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        if (isFrozen(event.getPlayer())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onInventoryClick(InventoryClickEvent event) {
-        if (isFrozen((Player) event.getWhoClicked())) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onInventoryDrag(InventoryDragEvent event) {
-        if (isFrozen((Player) event.getWhoClicked())) {
-            event.setCancelled(true);
+            if (getConfig().getBoolean("sync_to_db")) {
+                long startTime = System.currentTimeMillis();
+                PlayerUtil.saveData(player);
+                long endTime = System.currentTimeMillis();
+                LOGGER.info(String.format("Saved data for %s in %dms", player.getName(), (endTime - startTime)));
+            }
         }
     }
 
@@ -168,4 +134,5 @@ public final class MySQLSync extends JavaPlugin implements Listener {
     public void freezePlayer(Player player) {
         frozen.put(player, true);
     }
+
 }
