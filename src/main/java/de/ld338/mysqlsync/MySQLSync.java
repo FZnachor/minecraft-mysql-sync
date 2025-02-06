@@ -51,7 +51,7 @@ public final class MySQLSync extends JavaPlugin implements Listener {
         }
 
         for (String table : TABLES) {
-            MySQL.createTable(table, "player_uuid VARCHAR(36) PRIMARY KEY, CONTENTS LONGTEXT");
+            MySQL.createTable(table, "player_uuid VARCHAR(36) PRIMARY KEY, content LONGTEXT");
         }
 
         // If you edit this Code and want to make an own Table, you can add it here

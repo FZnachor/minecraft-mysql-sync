@@ -11,6 +11,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class MySQL {
+
     private static final Logger LOGGER = Bukkit.getLogger();
     private static Connection connection;
     private static String host;
@@ -81,4 +82,5 @@ public class MySQL {
         MySQL.username = username;
         MySQL.password = password;
     }
+
 }

@@ -10,17 +10,18 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class PlayerUtil {
+
     private static final Logger LOGGER = Bukkit.getLogger();
 
     private static void loadData(org.bukkit.entity.Player player, String table, DataDecoder decoder) {
-        String query = String.format("SELECT CONTENTS FROM %s WHERE player_uuid = ?", table);
+        String query = String.format("SELECT content FROM %s WHERE player_uuid = ?", table);
         try (Connection conn = MySQL.getConnection();
              PreparedStatement statement = conn.prepareStatement(query)) {
 
             statement.setString(1, player.getUniqueId().toString());
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
-                    String data = resultSet.getString("CONTENTS");
+                    String data = resultSet.getString("content");
                     decoder.decode(player, data);
                 }
             }
@@ -33,7 +34,7 @@ public class PlayerUtil {
 
     private static void saveData(org.bukkit.entity.Player player, String table, DataEncoder encoder) {
         String query = String.format(
-                "INSERT INTO %s (player_uuid, CONTENTS) VALUES (?, ?) ON DUPLICATE KEY UPDATE CONTENTS = ?",
+                "INSERT INTO %s (player_uuid, content) VALUES (?, ?) ON DUPLICATE KEY UPDATE content = ?",
                 table);
         try (Connection conn = MySQL.getConnection();
              PreparedStatement statement = conn.prepareStatement(query)) {
@@ -55,27 +56,27 @@ public class PlayerUtil {
     }
 
     public static void loadInv(org.bukkit.entity.Player player) {
-        loadData(player, "inventory", Base64Util::decodeInventoryFromBase64);
+        loadData(player, "inventory", Base64Util::decodeInventory);
     }
 
     public static void saveInv(org.bukkit.entity.Player player) {
-        saveData(player, "inventory", Base64Util::encodeInventoryToBase64);
+        saveData(player, "inventory", Base64Util::encodeInventory);
     }
 
     public static void loadEnderchest(org.bukkit.entity.Player player) {
-        loadData(player, "enderchest", Base64Util::decodeEnderChestFromBase64);
+        loadData(player, "enderchest", Base64Util::decodeEnderChest);
     }
 
     public static void saveEnderchest(org.bukkit.entity.Player player) {
-        saveData(player, "enderchest", Base64Util::encodeEnderChestToBase64);
+        saveData(player, "enderchest", Base64Util::encodeEnderChest);
     }
 
     public static void loadArmor(org.bukkit.entity.Player player) {
-        loadData(player, "armor", Base64Util::decodeArmorFromBase64);
+        loadData(player, "armor", Base64Util::decodeArmor);
     }
 
     public static void saveArmor(org.bukkit.entity.Player player) {
-        saveData(player, "armor", Base64Util::encodeArmorToBase64);
+        saveData(player, "armor", Base64Util::encodeArmor);
     }
 
     public static void loadXP(org.bukkit.entity.Player player) {
@@ -87,19 +88,19 @@ public class PlayerUtil {
     }
 
     public static void loadAchievements(org.bukkit.entity.Player player) {
-        loadData(player, "achievements", Base64Util::decodeAchievementsFromBase64);
+        loadData(player, "achievements", JsonUtil::decodeAchievements);
     }
 
     public static void saveAchievements(org.bukkit.entity.Player player) {
-        saveData(player, "achievements", Base64Util::encodeAchievementsToBase64);
+        saveData(player, "achievements", JsonUtil::encodeAchievements);
     }
 
     public static void loadStats(org.bukkit.entity.Player player) {
-        loadData(player, "stats", Base64Util::decodeStatsFromBase64);
+        loadData(player, "stats", JsonUtil::decodeStats);
     }
 
     public static void saveStats(org.bukkit.entity.Player player) {
-        saveData(player, "stats", Base64Util::encodeStatsToBase64);
+        saveData(player, "stats", JsonUtil::encodeStats);
     }
 
     public static void savePlayerState(org.bukkit.entity.Player player) {
@@ -119,11 +120,11 @@ public class PlayerUtil {
     }
 
     public static void loadEffects(org.bukkit.entity.Player player) {
-        loadData(player, "player_effects", (p, data) -> Base64Util.decodeEffectsFromBase64(player, data));
+        loadData(player, "player_effects", (p, data) -> JsonUtil.decodeEffects(player, data));
     }
 
     public static void saveEffects(org.bukkit.entity.Player player) {
-        saveData(player, "player_effects", Base64Util::encodeEffectsToBase64);
+        saveData(player, "player_effects", JsonUtil::encodeEffects);
     }
 
     @FunctionalInterface
@@ -157,4 +158,5 @@ public class PlayerUtil {
         loadEffects(player);
         loadPlayerState(player);
     }
+
 }
